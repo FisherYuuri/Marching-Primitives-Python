@@ -22,8 +22,8 @@ The source code of the algorithm is in `MPS.py` and the usage demo is in `main.p
 For preparing SDF from meshes, you can see the official version.
 
 The visualisation of this code results：
-![image](example/chair6.png)
-![image](example/wajueji.png)
+![image](examples/chair6.png)
+![image](examples/wajueji.png)
 ## Citation
 If you find this repo useful, please give us a star and cite:
 ```
