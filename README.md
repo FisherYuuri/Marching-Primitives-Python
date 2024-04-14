@@ -25,7 +25,7 @@ The visualisation of this code results：
 
 ![image](examples/chair6.png)
 ![image](examples/wajueji.png)
-## Citation
+# Citation
 If you find this repo useful, please give us a star and cite:
 ```
 @Inproceedings{Liu2023CVPR,
