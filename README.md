@@ -21,6 +21,9 @@ skimage
 The source code of the algorithm is in `MPS.py` and the usage demo is in `main.py`.
 For preparing SDF from meshes, you can see the official version.
 
+The visualisation of this code results：
+
+
 ## Citation
 If you find this repo useful, please give us a star and cite:
 ```
