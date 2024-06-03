@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-import utilities
+import utils
 
 class superquadric(object):
     # a class object specifies a superquadric primitive with a general pose.
@@ -65,7 +65,7 @@ class superquadric(object):
         self._r = R.from_quat(val)
 
     def showSuperquadric(self, threshold = 1e-2, num_limit = 10000, arclength = 0.02):
-        utilities.showSuperquadrics(self, threshold = threshold, num_limit = num_limit, arclength = arclength)
+        utils.showSuperquadrics(self, threshold = threshold, num_limit = num_limit, arclength = arclength)
 
 
 class rotations(object):
