@@ -6,7 +6,7 @@ from skimage.measure import label, regionprops
 from scipy.optimize import least_squares
 
 def parse_input_args(voxel_grid, **kwargs):
-    # 设置默认参数
+
     defaults = {
         'verbose': True,
         'padding_size': int(np.ceil(12 * voxel_grid['truncation'] / voxel_grid['interval'])),
@@ -25,7 +25,7 @@ def parse_input_args(voxel_grid, **kwargs):
         'activeMultiplier': 3
     }
 
-    # 使用从kwargs传入的参数来更新默认参数
+
     for key, value in kwargs.items():
         if key in defaults:
             defaults[key] = value
@@ -33,11 +33,9 @@ def parse_input_args(voxel_grid, **kwargs):
     return defaults
 
 def idx3d_flatten(indices, grid):
-    # 将3D索引平铺为1D索引]
     return indices[0, :] + grid['size'][0] * (indices[1, :] - 1) + grid['size'][0] * grid['size'][1] * (indices[2, :] - 1)
 
 def idx2Coordinate(indices, grid):
-    # 从网格索引转换为3D坐标
     idx_floor = np.floor(indices).astype(int)
     idx_floor[idx_floor == 0] = 1
 
@@ -147,17 +145,13 @@ def inlier_weight(sdf_active, active_idx, sdf_current, sigma2, w, truncation):
     return weight
 
 def fit_superquadric_tsdf(sdf, x_init, truncation, points, roi_idx, bounding_points, para):
-    # 初始化有效性向量
     valid = np.zeros(6)
-    # 定位上下界
     t_lb = bounding_points[:, 0]
     t_ub = bounding_points[:, 7]
 
-    # 设置上下界
     lb = np.array([0.0, 0.0, truncation, truncation, truncation, -2 * np.pi, -2 * np.pi, -2 * np.pi] + t_lb.tolist())
     ub = np.array([2, 2, 1, 1, 1, 2 * np.pi, 2 * np.pi, 2 * np.pi] + t_ub.tolist())
 
-    # 初始化
     x = np.array(x_init.copy())
     cost = 0
     switched = 0
@@ -215,7 +209,6 @@ def fit_superquadric_tsdf(sdf, x_init, truncation, points, roi_idx, bounding_poi
             break
         if relative_cost < para['switch_tolerance'] and iter != 1 and switched < para['maxSwitch']:
             switch_success = False
-            # 案例1 - 轴不匹配相似性
             axis_0 = eul2rotm(x[5:8])
             axis_1 = axis_0[:, np.array([1, 2, 0])]
             axis_2 = axis_0[:, np.array([2, 0, 1])]
@@ -226,7 +219,6 @@ def fit_superquadric_tsdf(sdf, x_init, truncation, points, roi_idx, bounding_poi
                  [x[1], x[0], x[4], x[2], x[3], eul_2[0], eul_2[1], eul_2[2], x[8], x[9], x[10]]]
             )
 
-            # 案例2 - 对偶相似性和组合
             scale_ratio = x[np.array([3, 4, 2])] / x[2:5]
             scale_idx = np.argwhere(np.logical_and(scale_ratio > 0.8, scale_ratio < 1.2))
             x_rot = np.zeros((scale_idx.shape[0], 11))
@@ -289,14 +281,12 @@ def fit_superquadric_tsdf(sdf, x_init, truncation, points, roi_idx, bounding_poi
                              x[8], x[9], x[10]]
                         )
 
-            # 生成候选配置列表及其成本
             x_candidate = np.zeros((2 + x_rot.shape[0], 11))
             x_candidate[0: 2] = x_axis
             if scale_idx.shape[0] > 0:
                 x_candidate[2: 2 + scale_idx.shape[0]] = x_rot
 
-            cost_candidate = cost_switched(x_candidate, sdf_active, points_active, truncation, weight) #函数是否正确？
-            # 筛选有效成本
+            cost_candidate = cost_switched(x_candidate, sdf_active, points_active, truncation, weight) 
             idx_nan = np.argwhere(
                 np.logical_and(~np.isnan(cost_candidate), ~np.isinf(cost_candidate))
             ).reshape(1, -1)[0]
@@ -305,13 +295,11 @@ def fit_superquadric_tsdf(sdf, x_init, truncation, points, roi_idx, bounding_poi
             idx = np.argsort(cost_candidate)
 
             for i_candidate in idx:
-                # 更新上界
                 Rot = eul2rotm(x_candidate[i_candidate, 5:8])
                 bP_body = Rot.T @ (bounding_points - x_candidate[i_candidate, 8:11][:, np.newaxis])
                 scale_limit = np.mean(np.abs(bP_body), axis=1)
                 ub[2:5] = scale_limit
 
-                # 最小二乘优化
                 x_candidate[i_candidate] = np.minimum(x_candidate[i_candidate], ub)
                 x_candidate[i_candidate] = np.maximum(x_candidate[i_candidate], lb)
 
@@ -338,20 +326,16 @@ def fit_superquadric_tsdf(sdf, x_init, truncation, points, roi_idx, bounding_poi
 
     sdf_occ = sdf_superquadric(x, points, 0)
 
-    # 确定占据的体素
     occ = sdf_occ < para['nanRange']
     occ_idx = roi_idx[occ]
 
-    # 确定内部体素
     occ_in = sdf_occ <= 0
 
-    # 统计相关数量指标
     num_idx = np.zeros(3)
     num_idx[0] = np.sum(np.logical_or(sdf[occ_in] <= 0, np.isnan(sdf[occ_in])))
     num_idx[1] = np.sum(sdf[occ_in] > 0)
     num_idx[2] = np.sum(sdf[occ_in] <= 0)
 
-    # 最终检查超四面体大小有效性
     Rot = eul2rotm(x[5:8])
     check_points = np.array([
         x[8:11] - Rot[:, 0].T * x[2],
@@ -369,37 +353,29 @@ def fit_superquadric_tsdf(sdf, x_init, truncation, points, roi_idx, bounding_poi
 
 
 def mps(sdf, voxel_grid, **kargs):
-    # 这里假设parameters是一个包含算法超参数的字典
     parameters = parse_input_args(voxel_grid, **kargs)
-    # 初始化一些变量
     num_division = 1
     x = []
     dratio = 3/5
     conn_ratio = [1, dratio, dratio**2, dratio**3, dratio**4,
                   dratio**5, dratio**6, dratio**7, dratio**8]
 
-    # 初始化连接指针和区域数量
     conn_pointer = 1
     num_region = 1
 
     while num_division < parameters['max_division']:
-        # 1-连接性行进
         if conn_pointer != 1 and num_region != 0:
             conn_pointer = 1
 
-        # 设置连接阈值
         conn_threshold = conn_ratio[conn_pointer - 1] * np.nanmin(sdf)
         if conn_threshold > -voxel_grid['truncation'] * 0.3:
             break
 
-        # 将sdf重排成三维数组，用于连接性检查
         sdf3d_region = sdf.reshape((voxel_grid['size'][0], voxel_grid['size'][1], voxel_grid['size'][2]),order='F')
-
-        # 连接性检查和初步划分
+        
         labeled_region = label(sdf3d_region <= conn_threshold)
         regions = regionprops(labeled_region)
 
-        # 计算感兴趣区域的大小
         regions = [region for region in regions if region.area >= parameters['min_area']]
         num_region = len(regions)
 
@@ -411,8 +387,7 @@ def mps(sdf, voxel_grid, **kargs):
                 conn_pointer += 1
             else:
                 break
-        # 2-概率基元行进
-        # 针对每个区域寻找最佳的超四面体表示
+
         num_region = len(regions)
         x_temp = np.zeros((num_region, 11))
         del_idx = np.zeros(num_region, dtype=int)
@@ -422,7 +397,7 @@ def mps(sdf, voxel_grid, **kargs):
             occ_idx = []
             # 获取并调整边界框
             bbox = regions[i].bbox
-            nbbox = np.zeros(len(bbox)) # nbbox会相差1，主要原因是matlab计算出来是带0.5的分数，然后其ceil，python直接是整数
+            nbbox = np.zeros(len(bbox)) 
             nbbox[0] = bbox[1] + 1
             nbbox[1] = bbox[0] + 1
             nbbox[2] = bbox[2] + 1
@@ -432,13 +407,13 @@ def mps(sdf, voxel_grid, **kargs):
 
             nbbox[3:] = np.minimum(nbbox[:3] + nbbox[3:] + parameters['padding_size'],
                                 [voxel_grid['size'][1], voxel_grid['size'][0], voxel_grid['size'][2]])
-            nbbox[:3] = np.maximum(nbbox[:3] - parameters['padding_size'], 1) #这里会相差1，具体影响待测
+            nbbox[:3] = np.maximum(nbbox[:3] - parameters['padding_size'], 1) 
             regions[i].nbbox = nbbox
             # 计算激活的体素索引
             idx_x, idx_y, idx_z = np.mgrid[nbbox[1]:nbbox[4]+1, nbbox[0]:nbbox[3]+1, nbbox[2]:nbbox[5]+1]
 
             indices = np.vstack([idx_x.T.ravel(), idx_y.T.ravel(), idx_z.T.ravel()])
-            roi_idx = idx3d_flatten(indices, voxel_grid) #这一步相差会扩大
+            roi_idx = idx3d_flatten(indices, voxel_grid) 
             regions[i].idx = roi_idx
 
             # 计算边界点坐标
