@@ -42,8 +42,6 @@ if __name__ == "__main__":
     print('sdf.shape: ', sdf.shape)
     print('voxelGrid[\'points\'].shape: ', voxelGrid['points'].shape)
 
-    # %% marching-primitives
-    # Python中的时间测量
     start_time = time.time()
     x = mps(sdf, voxelGrid) 
     fig = mlab.figure(size=(400, 400), bgcolor=(1, 1, 1))
