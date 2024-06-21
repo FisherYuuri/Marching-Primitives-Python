@@ -29,7 +29,7 @@ if __name__ == "__main__":
     # 创建网格
     x, y, z = np.meshgrid(voxelGrid['x'], voxelGrid['y'], voxelGrid['z'], indexing='ij')
     points = np.stack((x,y,z),axis=3)
-    voxelGrid['points'] = points.reshape((-1,3),order='F').T #这一步有问题，第一维和第三维需要变化
+    voxelGrid['points'] = points.reshape((-1,3),order='F').T 
 
     # 计算间隔和截断
     voxelGrid['interval'] = (voxelGrid['range'][1] - voxelGrid['range'][0]) / (voxelGrid['size'][0] - 1)
